@@ -7,7 +7,7 @@ DOM Hell is a web-based, bullet-hell style game played directly in your browser.
 1.**Clone the Repository**
 
 ```bash
-   git clone 
+   git clone https://github.com/Kartjem/Web-game.git
    cd web-game 
 ```
 
