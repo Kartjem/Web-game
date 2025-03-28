@@ -9,7 +9,8 @@ const {
   GAME_DURATION,
   checkCollision
 } = require('./constants');
-const { updateNPC } = require('./npc');
+const NPC = require('./npc');
+
 let bulletCounter = 0;
 let collectibleCounter = 0;
 let lastBulletSpawn = Date.now();
@@ -17,6 +18,7 @@ let lastCollectibleSpawn = Date.now();
 const bulletSpawnInterval = 750;
 const collectibleSpawnInterval = 3000;
 const bulletsPerSpawn = 2;
+
 function initGameState() {
   return {
     players: {},
@@ -25,11 +27,10 @@ function initGameState() {
     paused: false,
     gameStarted: false,
     gameEnded: false,
-    gameStartTime: null,
-    mode: "multi",
-    npcConfigs: []
+    gameStartTime: null
   };
 }
+
 function spawnBullet(gameState) {
   for (let i = 0; i < bulletsPerSpawn; i++) {
     let side = Math.floor(Math.random() * 3);
@@ -59,6 +60,7 @@ function spawnBullet(gameState) {
     gameState.bullets.push(bullet);
   }
 }
+
 function spawnCollectible(gameState) {
   const collectible = {
     id: 'collectible' + (++collectibleCounter),
@@ -67,6 +69,7 @@ function spawnCollectible(gameState) {
   };
   gameState.collectibles.push(collectible);
 }
+
 function handleCollisions(gameState, io) {
   Object.keys(gameState.players).forEach(id => {
     const player = gameState.players[id];
@@ -99,7 +102,22 @@ function handleCollisions(gameState, io) {
     }
   });
 }
+
 function updateGame(gameState, io) {
+  if (!gameState.gameStarted) return;
+  
+  Object.values(gameState.players).forEach(player => {
+    if (player.isNPC && player.alive) {
+      const npc = new NPC(player.difficulty);
+      npc.x = player.x;
+      npc.y = player.y;
+      npc.update(player, gameState);
+      if (player.difficulty === "hard") {
+        player.lives += 0.002;
+        player.lives = Math.min(player.lives, 5);
+      }
+    }
+  });
   if (!gameState.gameStarted || gameState.paused || gameState.gameEnded) return;
   const now = Date.now();
   if (now - lastBulletSpawn > bulletSpawnInterval) {
@@ -110,12 +128,6 @@ function updateGame(gameState, io) {
     spawnCollectible(gameState);
     lastCollectibleSpawn = now;
   }
-  Object.keys(gameState.players).forEach(id => {
-    const player = gameState.players[id];
-    if (player.isNPC && player.alive) {
-      updateNPC(player, gameState);
-    }
-  });
   Object.keys(gameState.players).forEach(id => {
     const player = gameState.players[id];
     if (player.alive) {
@@ -154,14 +166,13 @@ function updateGame(gameState, io) {
         gameState.paused = false;
         gameState.gameStartTime = null;
         gameState.players = {};
-        gameState.mode = "multi";
-        gameState.npcConfigs = [];
         io.emit('lobbyUpdate', gameState.players);
         io.emit('gameMessage', 'Lobby is now open for a new game.');
       }, 5000);
     }
   }
 }
+
 module.exports = {
   initGameState,
   updateGame

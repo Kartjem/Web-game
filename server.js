@@ -18,11 +18,17 @@ app.use(express.static('public'));
 let gameState = initGameState();
 registerSocketHandlers(io, gameState);
 
-// game loop at ~60 FPS
 setInterval(() => {
   updateGame(gameState, io);
   io.emit('gameState', gameState);
 }, 16);
+
+io.on('connection', (socket) => {
+  console.log('New connection:', socket.id);
+  socket.on('error', (err) => {
+    console.error('Socket error:', err);
+  });
+});
 
 server.listen(port, async () => {
   console.log(`✅ Server running on port ${port}`);

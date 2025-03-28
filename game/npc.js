@@ -1,232 +1,187 @@
-function updateNPC(npc, gameState) {
-  if (!npc.personality) {
-    npc.personality = {};
-    
-    if (npc.customPersonality) {
-      npc.personality.aggression = npc.customPersonality.aggression;
-      npc.personality.collector = npc.customPersonality.collector;
-      npc.personality.cautious = npc.customPersonality.cautious;
-      
-      npc.personality.erratic = npc.difficulty === 'unfair' ? 0.05 :
-                               npc.difficulty === 'hard' ? 0.2 + Math.random() * 0.1 :
-                               npc.difficulty === 'medium' ? 0.3 + Math.random() * 0.2 :
-                               0.5 + Math.random() * 0.3;
-      
-      npc.personality.adaptability = npc.difficulty === 'unfair' ? 0.1 :
-                                    npc.difficulty === 'hard' ? 0.1 + Math.random() * 0.1 :
-                                    npc.difficulty === 'medium' ? 0.2 + Math.random() * 0.1 :
-                                    0.3 + Math.random() * 0.2;
-    } else {
-      npc.personality.aggression = npc.difficulty === 'unfair' ? 1.0 :
-                                  npc.difficulty === 'hard' ? 0.7 + Math.random() * 0.2 :
-                                  npc.difficulty === 'medium' ? 0.4 + Math.random() * 0.3 :
-                                  0.2 + Math.random() * 0.2;
-      
-      npc.personality.collector = npc.difficulty === 'unfair' ? 1.0 :
-                                 npc.difficulty === 'hard' ? 0.6 + Math.random() * 0.3 :
-                                 npc.difficulty === 'medium' ? 0.4 + Math.random() * 0.3 :
-                                 0.2 + Math.random() * 0.3;
-                  
-      npc.personality.cautious = npc.difficulty === 'unfair' ? 1.0 :
-                                npc.difficulty === 'hard' ? 0.8 + Math.random() * 0.2 :
-                                npc.difficulty === 'medium' ? 0.5 + Math.random() * 0.3 :
-                                0.3 + Math.random() * 0.3;
-                  
-      npc.personality.erratic = npc.difficulty === 'unfair' ? 0.05 :
-                               npc.difficulty === 'hard' ? 0.2 + Math.random() * 0.1 :
-                               npc.difficulty === 'medium' ? 0.3 + Math.random() * 0.2 :
-                               0.5 + Math.random() * 0.3;
-                  
-      npc.personality.adaptability = npc.difficulty === 'unfair' ? 0.1 :
-                                    npc.difficulty === 'hard' ? 0.1 + Math.random() * 0.1 :
-                                    npc.difficulty === 'medium' ? 0.2 + Math.random() * 0.1 :
-                                    0.3 + Math.random() * 0.2;
+const { 
+    GAME_WIDTH, 
+    GAME_HEIGHT, 
+    PLAYER_SIZE, 
+    BULLET_SPEED,
+    DIFFICULTY_LEVELS
+} = require('./constants');
+
+class NPC {
+    constructor(difficulty) {
+        this.difficulty = difficulty;
+        this.target = null;
+        this.currentSpeed = 0;
+        this.maxSpeed = this.getSpeedByDifficulty();
+        this.acceleration = 0.3;
+        this.reactionTime = this.getReactionTime();
+        this.state = 'WANDER';
+        this.lastActionTime = 0;
+        this.safeDirection = { x: 0, y: 0 };
+        this.bulletDangerCache = new Map();
     }
-    
-    if (npc.difficulty === 'unfair') {
-      npc.decisionInterval = 50 + Math.random() * 20;
-    } else {
-      npc.decisionInterval = 100 + 
-        (npc.difficulty === 'easy' ? 150 : 
-         npc.difficulty === 'medium' ? 100 : 70) + 
-        Math.random() * 50;
+
+    getSpeedByDifficulty() {
+        return {
+            [DIFFICULTY_LEVELS.EASY]: 3,
+            [DIFFICULTY_LEVELS.MEDIUM]: 4.5,
+            [DIFFICULTY_LEVELS.HARD]: 6
+        }[this.difficulty];
     }
-    
-    npc.lastDecisionTime = Date.now();
-    npc.currentStrategy = 'collect';
-    npc.strategyChangeTime = Date.now() + (5000 + Math.random() * 10000) / npc.personality.adaptability;
-  }
-  
-  if (Date.now() - npc.lastDecisionTime < npc.decisionInterval) return;
-  npc.lastDecisionTime = Date.now();
-  
-  if (npc.difficulty === 'unfair') {
-    npc.decisionInterval = 50 + Math.random() * 20;
-  } else {
-    npc.decisionInterval = 100 + 
-      (npc.difficulty === 'easy' ? 150 : 
-       npc.difficulty === 'medium' ? 100 : 70) + 
-      Math.random() * 50;
-  }
-  
-  if (npc.velX === undefined || npc.velY === undefined) {
-    npc.velX = 0;
-    npc.velY = 0;
-  }
-  
-  if (Date.now() > npc.strategyChangeTime) {
-    const strategies = ['collect', 'avoid', 'chase', 'wander'];
-    const newStrategies = strategies.filter(s => s !== npc.currentStrategy);
-    npc.currentStrategy = newStrategies[Math.floor(Math.random() * newStrategies.length)];
-    npc.strategyChangeTime = Date.now() + (5000 + Math.random() * 10000) / npc.personality.adaptability;
-  }
-  
-  let moveX = 0;
-  let moveY = 0;
-  
-  const dodgeThreshold = 120;
-  gameState.bullets.forEach(bullet => {
-    let dx = npc.x - bullet.x;
-    let dy = npc.y - bullet.y;
-    let dist = Math.sqrt(dx * dx + dy * dy);
-    
-    if (dist < dodgeThreshold && dist > 0) {
-      let factor = 1 - (dist / dodgeThreshold);
-      
-      moveX += (dx / dist) * factor;
-      moveY += (dy / dist) * factor;
+
+    getReactionTime() {
+        return {
+            [DIFFICULTY_LEVELS.EASY]: 400,
+            [DIFFICULTY_LEVELS.MEDIUM]: 250,
+            [DIFFICULTY_LEVELS.HARD]: 150
+        }[this.difficulty];
     }
-  });
-  
-  moveX *= npc.personality.cautious;
-  moveY *= npc.personality.cautious;
-  
-  if (npc.currentStrategy === 'collect' || Math.random() < npc.personality.collector) {
-    let closest = null;
-    let minDist = Infinity;
-    
-    gameState.collectibles.forEach(col => {
-      let dx = col.x - npc.x;
-      let dy = col.y - npc.y;
-      let d = Math.sqrt(dx * dx + dy * dy);
-      if (d < minDist) {
-        minDist = d;
-        closest = col;
-      }
-    });
-    
-    if (closest) {
-      let dx = closest.x - npc.x;
-      let dy = closest.y - npc.y;
-      let d = Math.sqrt(dx * dx + dy * dy);
-      
-      if (d > 0) {
-        dx /= d;
-        dy /= d;
-        
-        let weightCollect = npc.personality.collector;
-        
+
+    findMostDangerousBullet(gameState, npc) {
+        const now = Date.now();
+        let mostDangerous = null;
+        let highestDanger = 0;
+
         gameState.bullets.forEach(bullet => {
-          let bx = bullet.x - closest.x;
-          let by = bullet.y - closest.y;
-          let bd = Math.sqrt(bx * bx + by * by);
-          if (bd < 100) weightCollect *= (1 - npc.personality.cautious * 0.5);
+            if (now - this.bulletDangerCache.get(bullet.id)?.time < 100) {
+                const cached = this.bulletDangerCache.get(bullet.id);
+                if (cached.danger > highestDanger) {
+                    mostDangerous = bullet;
+                    highestDanger = cached.danger;
+                }
+                return;
+            }
+
+            const futureX = bullet.x + bullet.vx * 30;
+            const futureY = bullet.y + bullet.vy * 30;
+            
+            const toNPC = Math.hypot(futureX - npc.x, futureY - npc.y);
+            const bulletSpeed = Math.hypot(bullet.vx, bullet.vy);
+            const timeToHit = toNPC / (bulletSpeed + 0.1);
+            
+            const distanceToTrajectory = this.distanceToLine(
+                npc.x, npc.y,
+                bullet.x, bullet.y,
+                futureX, futureY
+            );
+
+            const danger = (1 / (timeToHit + 0.1)) * (1 / (distanceToTrajectory + 5));
+
+            this.bulletDangerCache.set(bullet.id, { time: now, danger });
+
+            if (timeToHit < 1.5 && distanceToTrajectory < 50 && danger > highestDanger) {
+                mostDangerous = bullet;
+                highestDanger = danger;
+            }
         });
-        
-        moveX += dx * weightCollect;
-        moveY += dy * weightCollect;
-      }
+
+        return mostDangerous;
     }
-  }
-  
-  if (npc.currentStrategy === 'chase' && npc.personality.aggression > 0.3) {
-    let target = null;
-    let closestDist = Infinity;
-    
-    Object.values(gameState.players).forEach(player => {
-      if (player.id !== npc.id && player.alive) {
-        let dx = player.x - npc.x;
-        let dy = player.y - npc.y;
-        let dist = Math.sqrt(dx * dx + dy * dy);
-        
-        if (dist < closestDist) {
-          closestDist = dist;
-          target = player;
+
+    distanceToLine(x0, y0, x1, y1, x2, y2) {
+        const numerator = Math.abs((y2 - y1)*x0 - (x2 - x1)*y0 + x2*y1 - y2*x1);
+        const denominator = Math.hypot(y2 - y1, x2 - x1);
+        return numerator / (denominator + 0.1);
+    }
+
+    calculateEscapeVector(npc, bullet) {
+        const predictionSteps = {
+            [DIFFICULTY_LEVELS.EASY]: 20,
+            [DIFFICULTY_LEVELS.MEDIUM]: 30,
+            [DIFFICULTY_LEVELS.HARD]: 1
+        }[this.difficulty];
+
+        const bulletFutureX = bullet.x + bullet.vx * predictionSteps;
+        const bulletFutureY = bullet.y + bullet.vy * predictionSteps;
+
+        const toBulletFuture = {
+            x: bulletFutureX - npc.x,
+            y: bulletFutureY - npc.y
+        };
+
+        const perpendicular1 = { x: -toBulletFuture.y, y: toBulletFuture.x };
+        const perpendicular2 = { x: toBulletFuture.y, y: -toBulletFuture.x };
+
+        const length = Math.hypot(perpendicular1.x, perpendicular1.y);
+        const escape1 = {
+            x: perpendicular1.x / length * this.maxSpeed,
+            y: perpendicular1.y / length * this.maxSpeed
+        };
+        const escape2 = {
+            x: perpendicular2.x / length * this.maxSpeed,
+            y: perpendicular2.y / length * this.maxSpeed
+        };
+
+        const center = { x: GAME_WIDTH/2, y: GAME_HEIGHT/2 };
+        const dot1 = (escape1.x * (npc.x - center.x) + escape1.y * (npc.y - center.y));
+        const dot2 = (escape2.x * (npc.x - center.x) + escape2.y * (npc.y - center.y));
+
+        return dot1 > dot2 ? escape1 : escape2;
+    }
+
+    updateMovement(npc, targetX, targetY, deltaTime = 16/1000) {
+        const dx = targetX - npc.x;
+        const dy = targetY - npc.y;
+        const distance = Math.hypot(dx, dy);
+
+        this.currentSpeed = this.maxSpeed;
+
+        if (distance > 10) {
+            const dirX = dx / distance;
+            const dirY = dy / distance;
+            npc.x += dirX * this.currentSpeed * deltaTime * 60;
+            npc.y += dirY * this.currentSpeed * deltaTime * 60;
         }
-      }
-    });
-    
-    if (target) {
-      let dx = target.x - npc.x;
-      let dy = target.y - npc.y;
-      let dist = Math.sqrt(dx * dx + dy * dy);
-      
-      if (dist > 0) {
-        moveX += (dx / dist) * npc.personality.aggression;
-        moveY += (dy / dist) * npc.personality.aggression;
-      }
+
+        const margin = PLAYER_SIZE;
+        if (npc.x < margin) npc.x += this.maxSpeed * deltaTime * 60;
+        if (npc.x > GAME_WIDTH - margin) npc.x -= this.maxSpeed * deltaTime * 60;
+        if (npc.y < margin) npc.y += this.maxSpeed * deltaTime * 60;
+        if (npc.y > GAME_HEIGHT - margin) npc.y -= this.maxSpeed * deltaTime * 60;
     }
-  }
-  
-  if (npc.currentStrategy === 'wander' || Math.random() < npc.personality.erratic) {
-    let randomAngle = Math.random() * 2 * Math.PI;
-    let randomStrength = npc.difficulty === 'easy' ? 0.5 : 
-                         npc.difficulty === 'medium' ? 0.3 : 
-                         npc.difficulty === 'hard' ? 0.2 : 0.1;
-    
-    moveX += Math.cos(randomAngle) * randomStrength;
-    moveY += Math.sin(randomAngle) * randomStrength;
-  }
-  
-  if (Math.abs(moveX) < 0.1 && Math.abs(moveY) < 0.1) {
-    let randomAngle = Math.random() * 2 * Math.PI;
-    moveX += Math.cos(randomAngle) * 0.5;
-    moveY += Math.sin(randomAngle) * 0.5;
-  }
-  
-  if (npc.difficulty !== 'unfair') {
-    let mistakeChance = npc.difficulty === 'easy' ? 0.3 : 
-                        npc.difficulty === 'medium' ? 0.15 : 0.05;
-    
-    if (Math.random() < mistakeChance) {
-      if (Math.random() < 0.7) {
-        let randomAngle = Math.random() * 2 * Math.PI;
-        moveX = Math.cos(randomAngle) * 0.5;
-        moveY = Math.sin(randomAngle) * 0.5;
-      } else {
-        moveX = 0;
-        moveY = 0;
-      }
+
+    update(npc, gameState, deltaTime = 16/1000) {
+        const now = Date.now();
+        const dangerBullet = this.findMostDangerousBullet(gameState, npc);
+
+        if (dangerBullet && now - this.lastActionTime > this.reactionTime) {
+            this.state = 'AVOID';
+            const escapeVector = this.calculateEscapeVector(npc, dangerBullet);
+            const targetX = npc.x + escapeVector.x * 2;
+            const targetY = npc.y + escapeVector.y * 2;
+            this.updateMovement(npc, targetX, targetY, deltaTime);
+            this.lastActionTime = now;
+            return;
+        }
+
+        const bestCollectible = this.findBestCollectible(gameState, npc);
+        if (bestCollectible) {
+            this.state = 'COLLECT';
+            this.updateMovement(npc, bestCollectible.x, bestCollectible.y, deltaTime);
+        } else {
+            this.state = 'WANDER';
+            if (!this.target || Math.hypot(
+                this.target.x - npc.x, 
+                this.target.y - npc.y
+            ) < 50) {
+                this.target = {
+                    x: Math.random() * (GAME_WIDTH - PLAYER_SIZE * 2) + PLAYER_SIZE,
+                    y: Math.random() * (GAME_HEIGHT - PLAYER_SIZE * 2) + PLAYER_SIZE
+                };
+            }
+            this.updateMovement(npc, this.target.x, this.target.y, deltaTime);
+        }
     }
-  }
-  
-  let desiredX = moveX;
-  let desiredY = moveY;
-  let desiredMag = Math.sqrt(desiredX * desiredX + desiredY * desiredY);
-  
-  if (desiredMag > 1) {
-    desiredX /= desiredMag;
-    desiredY /= desiredMag;
-  }
-  
-  let alpha = 0.3;
-  npc.velX = npc.velX + (desiredX - npc.velX) * alpha;
-  npc.velY = npc.velY + (desiredY - npc.velY) * alpha;
-  
-  const threshold = 0.1;
-  npc.inputs = { 'ArrowUp': 'up', 'ArrowDown': 'up', 'ArrowLeft': 'up', 'ArrowRight': 'up' };
-  
-  if (npc.velX > threshold) {
-    npc.inputs['ArrowRight'] = 'down';
-  } else if (npc.velX < -threshold) {
-    npc.inputs['ArrowLeft'] = 'down';
-  }
-  
-  if (npc.velY > threshold) {
-    npc.inputs['ArrowDown'] = 'down';
-  } else if (npc.velY < -threshold) {
-    npc.inputs['ArrowUp'] = 'down';
-  }
+
+    findBestCollectible(gameState, npc) {
+        return gameState.collectibles.reduce((best, collectible) => {
+            const distance = Math.hypot(
+                collectible.x - npc.x,
+                collectible.y - npc.y
+            );
+            return distance < best.distance ? 
+                { item: collectible, distance } : best;
+        }, { item: null, distance: Infinity }).item;
+    }
 }
 
-module.exports = { updateNPC };
+module.exports = NPC;

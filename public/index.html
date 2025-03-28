@@ -1,190 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DOM Hell</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div id="landingScreen" class="screen">
-      <h1>DOM Hell</h1>
-      <button id="multiplayerBtn">Multiplayer</button>
-      <button id="singlePlayerBtn">Single Player</button>
-      <section id="rules">
-        <h2>Game Rules</h2>
-        <ul>
-          <li>Use the arrow keys to move.</li>
-          <li>Avoid incoming projectiles.</li>
-          <li>Collect green collectibles for points.</li>
-          <li>Lose a life when hit by a projectile (3 lives total).</li>
-          <li>Last player standing or highest score wins.</li>
-          <li>Duration: 2 minutes.</li>
-        </ul>
-        <h2>Controls</h2>
-        <ul>
-          <li>Arrow keys for movement.</li>
-          <li>Menu button to pause/resume/restart/exit.</li>
-        </ul>
-      </section>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DOM Hell</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="landingScreen" class="screen">
+    <h1>DOM Hell</h1>
+    <button id="multiplayerBtn">Multiplayer</button>
+    <section id="rules">
+      <h2>Game Rules</h2>
+      <ul>
+        <li>Use the arrow keys to move.</li>
+        <li>Avoid incoming projectiles.</li>
+        <li>Collect green collectibles for points.</li>
+        <li>Lose a life when hit by a projectile (3 lives total).</li>
+        <li>Last player standing or highest score wins.</li>
+        <li>Duration: 2 minutes.</li>
+      </ul>
+      <h2>Controls</h2>
+      <ul>
+        <li>Arrow keys for movement.</li>
+        <li>Menu button to pause/resume/restart/exit.</li>
+      </ul>
+    </section>
+  </div>
+  <div id="joinScreen" class="screen hidden">
+    <h1>DOM Hell</h1>
+    <form id="joinForm">
+      <input type="text" id="playerName" placeholder="Enter unique name" required>
+      <button type="submit">Join Lobby</button>
+    </form>
+    <div id="joinError" class="error"></div>
+    <div id="lobbyInfo" class="hidden">
+      <h2>Lobby</h2>
+      <div id="lobbyPlayers"></div>
+      <button id="startGame" class="hidden">Start Game</button>
+      <button id="exitLobby">Exit Lobby</button>
     </div>
-    <div id="joinScreen" class="screen hidden">
-      <h1>DOM Hell</h1>
-      <form id="joinForm">
-        <input
-          type="text"
-          id="playerName"
-          placeholder="Enter unique name"
-          required
-        />
-        <button type="submit">Join Lobby</button>
-      </form>
-      <div id="joinError" class="error"></div>
-      <div id="npcOptions" class="hidden">
-        <label for="npcCount">NPC Count:</label>
-        <select id="npcCount">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-        </select>
-        <div id="npcDifficultyContainer"></div>
-        
-        <div id="npcCustomization">
-          <div class="tabs">
-            <button class="tab-btn active" data-tab="1">NPC 1</button>
-            <button class="tab-btn" data-tab="2">NPC 2</button>
-            <button class="tab-btn" data-tab="3">NPC 3</button>
-          </div>
-          
-          <div class="tab-content active" data-tab="1">
-            <div class="npc-form">
-              <label for="npc1-name">Name:</label>
-              <input type="text" id="npc1-name" placeholder="NPC 1" />
-              
-              <label for="npc1-difficulty">Difficulty:</label>
-              <select id="npc1-difficulty" class="npc-difficulty">
-                <option value="easy">Easy</option>
-                <option value="medium" selected>Medium</option>
-                <option value="hard">Hard</option>
-                <option value="unfair">Unfair</option>
-              </select>
-              
-              <label for="npc1-color">Color:</label>
-              <input type="color" id="npc1-color" value="#ff0000" />
-              
-              <div class="personality-sliders">
-                <h4>Personality (Advanced)</h4>
-                <label>Aggression:
-                  <input type="range" id="npc1-aggression" min="0" max="100" value="50" />
-                  <span class="range-value">50%</span>
-                </label>
-                <label>Collector:
-                  <input type="range" id="npc1-collector" min="0" max="100" value="50" />
-                  <span class="range-value">50%</span>
-                </label>
-                <label>Cautiousness:
-                  <input type="range" id="npc1-cautious" min="0" max="100" value="50" />
-                  <span class="range-value">50%</span>
-                </label>
-                <p class="personality-note">Adjust sliders to customize NPC behavior or select a difficulty preset.</p>
-              </div>
-            </div>
-          </div>
-          
-          <div class="tab-content" data-tab="2">
-            <div class="npc-form">
-              <label for="npc2-name">Name:</label>
-              <input type="text" id="npc2-name" placeholder="NPC 2" />
-              
-              <label for="npc2-difficulty">Difficulty:</label>
-              <select id="npc2-difficulty" class="npc-difficulty">
-                <option value="easy">Easy</option>
-                <option value="medium" selected>Medium</option>
-                <option value="hard">Hard</option>
-                <option value="unfair">Unfair</option>
-              </select>
-              
-              <label for="npc2-color">Color:</label>
-              <input type="color" id="npc2-color" value="#00ff00" />
-              
-              <div class="personality-sliders">
-                <h4>Personality (Advanced)</h4>
-                <label>Aggression:
-                  <input type="range" id="npc2-aggression" min="0" max="100" value="50" />
-                  <span class="range-value">50%</span>
-                </label>
-                <label>Collector:
-                  <input type="range" id="npc2-collector" min="0" max="100" value="50" />
-                  <span class="range-value">50%</span>
-                </label>
-                <label>Cautiousness:
-                  <input type="range" id="npc2-cautious" min="0" max="100" value="50" />
-                  <span class="range-value">50%</span>
-                </label>
-                <p class="personality-note">Adjust sliders to customize NPC behavior or select a difficulty preset.</p>
-              </div>
-            </div>
-          </div>
-          
-          <div class="tab-content" data-tab="3">
-            <div class="npc-form">
-              <label for="npc3-name">Name:</label>
-              <input type="text" id="npc3-name" placeholder="NPC 3" />
-              
-              <label for="npc3-difficulty">Difficulty:</label>
-              <select id="npc3-difficulty" class="npc-difficulty">
-                <option value="easy">Easy</option>
-                <option value="medium" selected>Medium</option>
-                <option value="hard">Hard</option>
-                <option value="unfair">Unfair</option>
-              </select>
-              
-              <label for="npc3-color">Color:</label>
-              <input type="color" id="npc3-color" value="#0000ff" />
-              
-              <div class="personality-sliders">
-                <h4>Personality (Advanced)</h4>
-                <label>Aggression:
-                  <input type="range" id="npc3-aggression" min="0" max="100" value="50" />
-                  <span class="range-value">50%</span>
-                </label>
-                <label>Collector:
-                  <input type="range" id="npc3-collector" min="0" max="100" value="50" />
-                  <span class="range-value">50%</span>
-                </label>
-                <label>Cautiousness:
-                  <input type="range" id="npc3-cautious" min="0" max="100" value="50" />
-                  <span class="range-value">50%</span>
-                </label>
-                <p class="personality-note">Adjust sliders to customize NPC behavior or select a difficulty preset.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="lobbyInfo" class="hidden">
-        <h2>Lobby</h2>
-        <div id="lobbyPlayers"></div>
-        <button id="startGame" class="hidden">Start Game</button>
-        <button id="exitLobby">Exit Lobby</button>
-      </div>
+  </div>
+  <div id="gameScreen" class="screen hidden">
+    <div id="hud">
+      <div id="scoreboard"></div>
+      <div id="timer">00:00</div>
     </div>
-    <div id="gameScreen" class="screen hidden">
-      <div id="hud">
-        <div id="scoreboard"></div>
-        <div id="timer">00:00</div>
-      </div>
-      <button id="menuToggle" class="menu-toggle">Menu</button>
-      <div id="gameArea"></div>
-      <div id="menu" class="hidden">
-        <button id="resume">Resume</button>
-        <button id="restart">Restart</button>
-        <button id="exitGame">Exit</button>
-      </div>
-      <div id="messages"></div>
+    <button id="menuToggle" class="menu-toggle">Menu</button>
+    <div id="gameArea"></div>
+    <div id="menu" class="hidden">
+      <button id="resume">Resume</button>
+      <button id="restart">Restart</button>
+      <button id="exitGame">Exit</button>
     </div>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="game.js"></script>
-  </body>
+    <div id="messages"></div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game.js"></script>
+</body>
 </html>
